@@ -24,7 +24,7 @@ export const initializeDlna = () => {
         const devices: Map<string, DlnaDevice> = new Map();
 
         for await (const deviceUrl of discoverDeviceUrls()) {
-            const device = await getDevice(deviceUrl);
+            const device = await getDlnaDevice(deviceUrl);
             if (!device) continue;
 
             devices.set(device.url, device);
@@ -36,65 +36,42 @@ export const initializeDlna = () => {
 
 async function* discoverDeviceUrls(): AsyncGenerator<string, void, unknown> {
     const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+
     const discoveredDevices = new Set<string>();
-
-    const SSDP_PORT = 1900;
-    const SSDP_ADDRESS = '239.255.255.250';
-    const SEARCH_TARGET = 'urn:schemas-upnp-org:device:MediaRenderer:1';
-
-    const searchMessage = Buffer.from(
-        `M-SEARCH * HTTP/1.1\r\n` +
-            `HOST: ${SSDP_ADDRESS}:${SSDP_PORT}\r\n` +
-            `MAN: "ssdp:discover"\r\n` +
-            `MX: 3\r\n` +
-            `ST: ${SEARCH_TARGET}\r\n` +
-            `\r\n`,
-    );
-
     const deviceQueue: string[] = [];
-    let resolver: (() => void) | null = null;
+
     let done = false;
+    let resolver: (() => void) | null = null;
+
+    const resolve = () => {
+        if (!resolver) return;
+        resolver();
+        resolver = null;
+    };
 
     socket.on('message', (msg) => {
-        const response = msg.toString();
+        const location = getLocationFromSsdpResponse(msg);
+        if (!location || discoveredDevices.has(location)) return;
 
-        const locationMatch = response.match(/LOCATION:\s*(.+)/i);
-        if (!locationMatch) return;
-
-        const location = locationMatch[1].trim();
-        if (discoveredDevices.has(location)) return;
-
-        discoveredDevices.add(location);
         deviceQueue.push(location);
         console.log('SSDP discovered device:', location);
-        if (resolver) {
-            resolver();
-            resolver = null;
-        }
+        resolve();
     });
 
     socket.on('error', (err) => {
         console.error('SSDP socket error:', err);
         socket.close();
         done = true;
-        if (resolver) {
-            resolver();
-            resolver = null;
-        }
+        resolve();
     });
 
     socket.bind(() => {
-        socket.send(searchMessage, 0, searchMessage.length, SSDP_PORT, SSDP_ADDRESS, (err) => {
-            if (err) console.error('Failed to send SSDP search:', err);
-        });
+        sendSsdpBroadcast(socket);
 
         setTimeout(() => {
             socket.close();
             done = true;
-            if (resolver) {
-                resolver();
-                resolver = null;
-            }
+            resolve();
         }, 5000);
     });
 
@@ -107,7 +84,35 @@ async function* discoverDeviceUrls(): AsyncGenerator<string, void, unknown> {
     }
 }
 
-const getDevice = async (deviceUrl: string) => {
+const sendSsdpBroadcast = (socket: dgram.Socket) => {
+    const SSDP_PORT = 1900;
+    const SSDP_ADDRESS = '239.255.255.250';
+    const SSDP_SEARCH_TARGET = 'urn:schemas-upnp-org:device:MediaRenderer:1';
+
+    const ssdpSearchMessage = Buffer.from(
+        `M-SEARCH * HTTP/1.1\r\n` +
+            `HOST: ${SSDP_ADDRESS}:${SSDP_PORT}\r\n` +
+            `MAN: "ssdp:discover"\r\n` +
+            `MX: 3\r\n` +
+            `ST: ${SSDP_SEARCH_TARGET}\r\n` +
+            `\r\n`,
+    );
+    socket.send(ssdpSearchMessage, 0, ssdpSearchMessage.length, SSDP_PORT, SSDP_ADDRESS, (err) => {
+        if (err) console.error('Failed to send SSDP search:', err);
+    });
+};
+
+
+const getLocationFromSsdpResponse = (message: Buffer<ArrayBuffer>) => {
+    const response = message.toString();
+
+    const locationMatch = response.match(/LOCATION:\s*(.+)/i);
+    if (!locationMatch) return;
+
+    return locationMatch[1].trim();
+};
+
+const getDlnaDevice = async (deviceUrl: string) => {
     try {
         const { data } = await axios.get(deviceUrl, { timeout: 2000 });
         const parsed = parser.parse(data);
