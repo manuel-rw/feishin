@@ -1,6 +1,8 @@
 import MediaRendererClient from 'upnp-mediarenderer-client';
 import { DlnaPlayStream } from '/@/shared/types/types';
 
+const ERR_NOT_INITIALIZED = Error('DLNA client not initialized');
+
 let client: MediaRendererClient | null = null;
 
 export const setDevice = (deviceUrl: string) => {
@@ -9,7 +11,7 @@ export const setDevice = (deviceUrl: string) => {
 
 const getClient = () => {
     if (!client) {
-        console.error('DLNA client not initialized');
+        console.error(ERR_NOT_INITIALIZED);
         return null;
     }
     return client;
@@ -31,4 +33,19 @@ export const load = (stream: DlnaPlayStream) => {
 };
 
 export const play = () => getClient()?.play();
+
 export const pause = () => getClient()?.pause();
+
+export const getTime = async () =>
+    new Promise<number>((resolve, reject) => {
+        const client = getClient();
+        if (!client) return reject(ERR_NOT_INITIALIZED);
+
+        client.getPosition((err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });

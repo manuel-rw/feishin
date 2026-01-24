@@ -19,7 +19,7 @@ const ipc = isElectron() ? window.api.ipc : null;
 export const DlnaPlayer = () => {
     const song = usePlayerSong();
     const status = usePlayerStatus();
-    const { mediaNext } = usePlayerActions();
+    const { mediaNext, setTimestamp } = usePlayerActions();
     const { transcode } = usePlaybackSettings();
 
     const songUrl = useSongUrl(song, true, transcode);
@@ -63,6 +63,23 @@ export const DlnaPlayer = () => {
                 console.error(`Unknown player status '${status}'`);
         }
     }, [status]);
+
+    useEffect(() => {
+        if (status !== PlayerStatus.PLAYING) return;
+
+        const interval = setInterval(async () => {
+            if (!dlnaPlayer) return;
+
+            try {
+                const time = await dlnaPlayer.getCurrentTime();
+                setTimestamp(Number(time.toFixed(0)));
+            } catch {
+                // Do nothing
+            }
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, [status, setTimestamp]);
 
     useEffect(() => {
         dlnaPlayerListener?.rendererDlnaFinished(() => mediaNext());

@@ -4,7 +4,7 @@ import { ipcMain } from 'electron';
 import { XMLParser } from 'fast-xml-parser';
 import z from 'zod';
 import { DlnaDevice, DlnaInitialize, DlnaPlayStream } from '/@/shared/types/types';
-import { load, pause, play, setDevice } from '/@/main/features/core/dlna/controller';
+import { getTime, load, pause, play, setDevice } from '/@/main/features/core/dlna/controller';
 
 const parser = new XMLParser();
 
@@ -132,6 +132,10 @@ ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) =>
     setDevice(data.deviceUrl),
 );
 
-ipcMain.on('dlna-load', async (_event, stream: DlnaPlayStream) => load(stream));
-ipcMain.on('dlna-play', async () => play());
-ipcMain.on('dlna-pause', async () => pause());
+ipcMain.on('dlna-load', (_event, stream: DlnaPlayStream) => load(stream));
+
+ipcMain.on('dlna-play', () => play());
+
+ipcMain.on('dlna-pause', () => pause());
+
+ipcMain.handle('dlna-get-time', async () => await getTime());

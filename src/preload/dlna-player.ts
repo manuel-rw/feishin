@@ -5,17 +5,15 @@ const discover = () => {
     return ipcRenderer.invoke('dlna-discover');
 };
 
-const initialize = (data: DlnaInitialize) => {
-    return ipcRenderer.invoke('dlna-initialize', data);
-};
+const initialize = (data: DlnaInitialize) => ipcRenderer.invoke('dlna-initialize', data);
 
-const load = (song: DlnaPlayStream) => {
-    ipcRenderer.send('dlna-load', song);
-};
+const load = (song: DlnaPlayStream) => ipcRenderer.send('dlna-load', song);
 
 const play = () => ipcRenderer.send('dlna-play');
 
 const pause = () => ipcRenderer.send('dlna-pause');
+
+const getCurrentTime = () => ipcRenderer.invoke('dlna-get-time') as Promise<number>;
 
 const rendererDlnaFinished = (cb: (event: IpcRendererEvent, data: boolean) => void) => {
     ipcRenderer.on('renderer-dlna-finished', cb);
@@ -27,6 +25,7 @@ export const dlnaPlayer = {
     load,
     play,
     pause,
+    getCurrentTime,
 };
 
 export const dlnaPlayerListener = {
