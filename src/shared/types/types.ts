@@ -293,11 +293,16 @@ export type DlnaInitialize = {
     deviceUrl: string;
 };
 
-export type DlnaSong = {
-    metadata: {
-        album: string | null;
-        artist: string;
-        title: string;
-    };
+export type DlnaPlayStream = {
     url: string;
+    metadata: DlnaMetadata;
+    mimeType: string;
+    autoplay?: boolean;
 };
+
+export type DlnaMetadata = {
+    title?: string;
+    creator?: string;
+    type?: "music" | "audo" | "image";
+    subtitleUrl?: string;
+}

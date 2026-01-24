@@ -1,4 +1,5 @@
 import MediaRendererClient from 'upnp-mediarenderer-client';
+import { DlnaPlayStream } from '/@/shared/types/types';
 
 let client: MediaRendererClient | null = null;
 
@@ -6,17 +7,21 @@ export const setDevice = (deviceUrl: string) => {
     client = new MediaRendererClient(deviceUrl);
 };
 
-export const playOnSpeaker = (url: string, metadata: string) => {
+const getClient = () => {
     if (!client) {
-        console.error('Cannot play: DLNA client not initialized');
-        return;
+        console.error('DLNA client not initialized');
+        return null;
     }
-    client.load(
-        url,
+    return client;
+};
+
+export const load = (stream: DlnaPlayStream) => {
+    getClient()?.load(
+        stream.url,
         {
-            autoplay: true,
-            contentType: 'audio/ogg',
-            metadata: metadata, // This shows the Artist/Title on the speaker's screen
+            autoplay: stream.autoplay || false,
+            contentType: stream.mimeType,
+            metadata: stream.metadata,
         },
         (err: any) => {
             if (err) console.error('DLNA playback error:', err);
@@ -24,3 +29,6 @@ export const playOnSpeaker = (url: string, metadata: string) => {
         },
     );
 };
+
+export const play = () => getClient()?.play();
+export const pause = () => getClient()?.pause();

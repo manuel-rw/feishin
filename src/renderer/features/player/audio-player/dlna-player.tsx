@@ -1,6 +1,13 @@
+import mime from 'mime';
+
 import { useEffect } from 'react';
 
-import { usePlaybackSettings, usePlayerActions, usePlayerSong, usePlayerStatus } from '/@/renderer/store';
+import {
+    usePlaybackSettings,
+    usePlayerActions,
+    usePlayerSong,
+    usePlayerStatus,
+} from '/@/renderer/store';
 import { PlayerStatus } from '/@/shared/types/types';
 import isElectron from 'is-electron';
 import { useSongUrl } from '/@/renderer/features/player/audio-player/hooks/use-stream-url';
@@ -18,17 +25,44 @@ export const DlnaPlayer = () => {
     const songUrl = useSongUrl(song, true, transcode);
 
     useEffect(() => {
-        if (!song || !songUrl || status !== PlayerStatus.PLAYING) return;
+        if (!song || status !== PlayerStatus.PLAYING) return;
 
-        dlnaPlayer?.play({
-            metadata: {
-                album: song.album,
-                artist: song.artistName,
-                title: song.name,
-            },
+        if (!song.path) {
+            console.error(`Loading song #${song.id}: no path`);
+            return;
+        }
+
+        const mimeType = mime.getType(song.path);
+        if (!mimeType) {
+            console.error(`Loading song '${song.path}': cannot infer mime type`);
+            return;
+        }
+
+        if (!songUrl) {
+            console.error(`Loading song '${song.path}': no url`);
+            return;
+        }
+
+        dlnaPlayer?.load({
+            metadata: { creator: song.artistName, title: song.name, type: 'music' },
+            mimeType,
+            autoplay: status === PlayerStatus.PLAYING,
             url: songUrl,
         });
-    }, [song, song?.id, status]);
+    }, [song, song?.id, songUrl]);
+
+    useEffect(() => {
+        switch (status) {
+            case PlayerStatus.PAUSED:
+                dlnaPlayer?.pause();
+                break;
+            case PlayerStatus.PLAYING:
+                dlnaPlayer?.play();
+                break;
+            default:
+                console.error(`Unknown player status '${status}'`);
+        }
+    }, [status]);
 
     useEffect(() => {
         dlnaPlayerListener?.rendererDlnaFinished(() => mediaNext());

@@ -1,5 +1,5 @@
 import { ipcRenderer, IpcRendererEvent } from 'electron';
-import { DlnaInitialize, DlnaSong } from '/@/shared/types/types';
+import { DlnaInitialize, DlnaPlayStream } from '/@/shared/types/types';
 
 const discover = () => {
     return ipcRenderer.invoke('dlna-discover');
@@ -9,9 +9,13 @@ const initialize = (data: DlnaInitialize) => {
     return ipcRenderer.invoke('dlna-initialize', data);
 };
 
-const play = (song: DlnaSong) => {
-    ipcRenderer.send('dlna-play', song);
+const load = (song: DlnaPlayStream) => {
+    ipcRenderer.send('dlna-load', song);
 };
+
+const play = () => ipcRenderer.send('dlna-play');
+
+const pause = () => ipcRenderer.send('dlna-pause');
 
 const rendererDlnaFinished = (cb: (event: IpcRendererEvent, data: boolean) => void) => {
     ipcRenderer.on('renderer-dlna-finished', cb);
@@ -20,7 +24,9 @@ const rendererDlnaFinished = (cb: (event: IpcRendererEvent, data: boolean) => vo
 export const dlnaPlayer = {
     discover,
     initialize,
+    load,
     play,
+    pause,
 };
 
 export const dlnaPlayerListener = {

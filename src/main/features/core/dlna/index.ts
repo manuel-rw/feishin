@@ -3,8 +3,8 @@ import * as dgram from 'dgram';
 import { ipcMain } from 'electron';
 import { XMLParser } from 'fast-xml-parser';
 import z from 'zod';
-import { DlnaDevice, DlnaInitialize, DlnaSong } from '/@/shared/types/types';
-import { playOnSpeaker, setDevice } from '/@/main/features/core/dlna/controller';
+import { DlnaDevice, DlnaInitialize, DlnaPlayStream } from '/@/shared/types/types';
+import { load, pause, play, setDevice } from '/@/main/features/core/dlna/controller';
 
 const parser = new XMLParser();
 
@@ -128,11 +128,10 @@ const getDlnaDevice = async (deviceUrl: string) => {
     }
 };
 
-ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) => {
-    setDevice(data.deviceUrl);
-});
+ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) =>
+    setDevice(data.deviceUrl),
+);
 
-ipcMain.on('dlna-play', async (_event, song: DlnaSong) => {
-    // TODO: better metadata
-    playOnSpeaker(song.url, song.metadata.title);
-});
+ipcMain.on('dlna-load', async (_event, stream: DlnaPlayStream) => load(stream));
+ipcMain.on('dlna-play', async () => play());
+ipcMain.on('dlna-pause', async () => pause());
