@@ -40,6 +40,11 @@ import { useMediaQuery } from '/@/shared/hooks/use-media-query';
 import { useThrottledCallback } from '/@/shared/hooks/use-throttled-callback';
 import { useThrottledValue } from '/@/shared/hooks/use-throttled-value';
 import { LibraryItem, QueueSong, ServerType } from '/@/shared/types/domain-types';
+import { PlayerType } from '/@/shared/types/types';
+import isElectron from 'is-electron';
+
+const ipc = isElectron() ? window.api.ipc : null;
+const dlnaPlayer = isElectron() ? window.api.dlnaPlayer : null;
 
 const calculateVolumeUp = (volume: number, volumeWheelStep: number) => {
     let volumeToSet: number;
@@ -376,11 +381,14 @@ const CastButton = () => {
     const [devices, setDevices] = useState<DlnaDevice[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
+    const playbackSettings = usePlaybackSettings();
+    const { setSettings } = useSettingsStoreActions();
+
     const discoverDevices = async () => {
         setIsSearching(true);
         try {
             // This invokes the SSDP discovery in the Main process
-            const foundDevices = await window.api.ipc.invoke('dlna-discover');
+            const foundDevices = await dlnaPlayer?.discover();
             setDevices(foundDevices);
         } catch (error) {
             console.error('Failed to discover DLNA devices:', error);
@@ -389,9 +397,19 @@ const CastButton = () => {
         }
     };
 
-    const handleSelectDevice = (device: DlnaDevice | null) => {
-        // TODO: handle device change
-        console.log('handling device', JSON.stringify(device));
+    const handleSelectDevice = async (device: DlnaDevice | null) => {
+        if (!device) return;
+
+        console.log('Connecting to DLNA device: ', JSON.stringify(device));
+
+        setSettings({
+            playback: { ...playbackSettings, type: PlayerType.DLNA },
+        });
+        await dlnaPlayer?.initialize({ deviceUrl: device.url });
+        ipc?.send('settings-set', {
+            property: 'playbackType',
+            value: PlayerType.DLNA,
+        });
     };
     return (
         <Menu position="top-end" shadow="md" width={200} withArrow>

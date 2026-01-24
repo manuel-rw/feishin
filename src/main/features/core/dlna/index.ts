@@ -3,6 +3,8 @@ import * as dgram from 'dgram';
 import { ipcMain } from 'electron';
 import { XMLParser } from 'fast-xml-parser';
 import z from 'zod';
+import { DlnaDevice, DlnaInitialize, DlnaSong } from '/@/shared/types/types';
+import { playOnSpeaker, setDevice } from '/@/main/features/core/dlna/controller';
 
 const parser = new XMLParser();
 
@@ -14,25 +16,18 @@ const deviceSchema = z.object({
     }),
 });
 
-interface DlnaDevice {
-    name: string;
-    url: string;
-}
+ipcMain.handle('dlna-discover', async () => {
+    const devices: Map<string, DlnaDevice> = new Map();
 
-export const initializeDlna = () => {
-    ipcMain.handle('dlna-discover', async () => {
-        const devices: Map<string, DlnaDevice> = new Map();
+    for await (const deviceUrl of discoverDeviceUrls()) {
+        const device = await getDlnaDevice(deviceUrl);
+        if (!device) continue;
 
-        for await (const deviceUrl of discoverDeviceUrls()) {
-            const device = await getDlnaDevice(deviceUrl);
-            if (!device) continue;
+        devices.set(device.url, device);
+    }
 
-            devices.set(device.url, device);
-        }
-
-        return Array.from(devices.values());
-    });
-};
+    return Array.from(devices.values());
+});
 
 async function* discoverDeviceUrls(): AsyncGenerator<string, void, unknown> {
     const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -102,7 +97,6 @@ const sendSsdpBroadcast = (socket: dgram.Socket) => {
     });
 };
 
-
 const getLocationFromSsdpResponse = (message: Buffer<ArrayBuffer>) => {
     const response = message.toString();
 
@@ -133,3 +127,12 @@ const getDlnaDevice = async (deviceUrl: string) => {
         return null;
     }
 };
+
+ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) => {
+    setDevice(data.deviceUrl);
+});
+
+ipcMain.on('dlna-play', async (_event, song: DlnaSong) => {
+    // TODO: better metadata
+    playOnSpeaker(song.url, song.metadata.title);
+});

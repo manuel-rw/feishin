@@ -283,3 +283,21 @@ export type WebAudio = {
     context: AudioContext;
     gains: GainNode[];
 };
+
+export type DlnaDevice = {
+    name: string;
+    url: string;
+};
+
+export type DlnaInitialize = {
+    deviceUrl: string;
+};
+
+export type DlnaSong = {
+    metadata: {
+        album: string | null;
+        artist: string;
+        title: string;
+    };
+    url: string;
+};
