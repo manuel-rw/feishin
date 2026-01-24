@@ -5,8 +5,9 @@ const ERR_NOT_INITIALIZED = Error('DLNA client not initialized');
 
 let client: MediaRendererClient | null = null;
 
-export const setDevice = (deviceUrl: string) => {
+export const createClient = (deviceUrl: string) => {
     client = new MediaRendererClient(deviceUrl);
+    return client;
 };
 
 const getClient = () => {

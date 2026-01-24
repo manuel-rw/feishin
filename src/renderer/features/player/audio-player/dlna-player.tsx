@@ -1,108 +1,185 @@
-import mime from 'mime';
+import isElectron from 'is-electron';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useEffect } from 'react';
+import { DlnaPlayerEngine, DlnaPlayerEngineHandle } from './engine/dlna-player-engine';
 
+import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/use-player-events';
+import { usePlayer } from '/@/renderer/features/player/context/player-context';
 import {
     usePlaybackSettings,
     usePlayerActions,
-    usePlayerSong,
-    usePlayerStatus,
+    usePlayerData,
+    usePlayerMuted,
+    usePlayerProperties,
+    usePlayerStore,
+    usePlayerVolume,
 } from '/@/renderer/store';
 import { PlayerStatus } from '/@/shared/types/types';
-import isElectron from 'is-electron';
-import { useSongUrl } from '/@/renderer/features/player/audio-player/hooks/use-stream-url';
-import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/use-player-events';
-import { usePlayer } from '/@/renderer/features/player/context/player-context';
+
+const PLAY_PAUSE_FADE_DURATION = 300;
+const PLAY_PAUSE_FADE_INTERVAL = 10;
 
 const dlnaPlayer = isElectron() ? window.api.dlnaPlayer : null;
-const dlnaPlayerListener = isElectron() ? window.api.dlnaPlayerListener : null;
-const ipc = isElectron() ? window.api.ipc : null;
 
-export const DlnaPlayer = () => {
-    const song = usePlayerSong();
-    const status = usePlayerStatus();
-    const { mediaNext, setTimestamp } = usePlayerActions();
-    const { transcode } = usePlaybackSettings();
+export function DlnaPlayer() {
+    const playerRef = useRef<DlnaPlayerEngineHandle>(null);
+    const { status } = usePlayerData();
+    const { mediaAutoNext, setTimestamp } = usePlayerActions();
+    const { speed } = usePlayerProperties();
+    const isMuted = usePlayerMuted();
+    const volume = usePlayerVolume();
+    const { audioFadeOnStatusChange } = usePlaybackSettings();
 
-    const songUrl = useSongUrl(song, true, transcode);
+    const [localPlayerStatus, setLocalPlayerStatus] = useState<PlayerStatus>(status);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
-        if (!song || status !== PlayerStatus.PLAYING) return;
+    const fadeAndSetStatus = useCallback(
+        async (startVolume: number, endVolume: number, duration: number, status: PlayerStatus) => {
+            // Cancel any in-progress fade
+            if (fadeIntervalRef.current) {
+                clearInterval(fadeIntervalRef.current);
+                fadeIntervalRef.current = null;
+            }
 
-        if (!song.path) {
-            console.error(`Loading song #${song.id}: no path`);
-            return;
-        }
+            // Set initial volume immediately to ensure we start from the correct position
+            // This is especially important when cancelling a previous fade
+            playerRef.current?.setVolume(startVolume);
 
-        const mimeType = mime.getType(song.path);
-        if (!mimeType) {
-            console.error(`Loading song '${song.path}': cannot infer mime type`);
-            return;
-        }
+            const steps = duration / PLAY_PAUSE_FADE_INTERVAL;
+            const volumeStep = (endVolume - startVolume) / steps;
+            let currentStep = 0;
 
-        if (!songUrl) {
-            console.error(`Loading song '${song.path}': no url`);
-            return;
-        }
+            const promise = new Promise<void>((resolve) => {
+                fadeIntervalRef.current = setInterval(() => {
+                    currentStep++;
+                    const newVolume = startVolume + volumeStep * currentStep;
 
-        dlnaPlayer?.load({
-            metadata: { creator: song.artistName, title: song.name, type: 'music' },
-            mimeType,
-            autoplay: status === PlayerStatus.PLAYING,
-            url: songUrl,
-        });
-    }, [song, song?.id, songUrl]);
+                    playerRef.current?.setVolume(newVolume);
+
+                    if (currentStep >= steps) {
+                        if (fadeIntervalRef.current) {
+                            clearInterval(fadeIntervalRef.current);
+                            fadeIntervalRef.current = null;
+                        }
+                        // Ensure final volume is exactly the target
+                        playerRef.current?.setVolume(endVolume);
+                        resolve();
+                    }
+                }, PLAY_PAUSE_FADE_INTERVAL);
+            });
+
+            if (status === PlayerStatus.PAUSED) {
+                await promise;
+                setLocalPlayerStatus(status);
+            } else if (status === PlayerStatus.PLAYING) {
+                setLocalPlayerStatus(status);
+                await promise;
+            }
+        },
+        [],
+    );
+
+    const onProgress = useCallback(() => {
+        // Progress callback is now only used for transition logic
+        // Timestamp updates are handled separately in useEffect
+    }, []);
+
+    const handleOnEnded = useCallback(() => {
+        // When mpv auto-advances to the next song (position 1 becomes position 0),
+        // we need to update the player store first, then update the mpv queue with the new next song
+        // This follows the same pattern as the old useCenterControls implementation
+        const playerData = mediaAutoNext();
+
+        // Update the mpv queue with the new next song
+        // The engine will handle the queue update through the useEffect when nextSong changes
+        playerRef.current?.setVolume(volume);
+        setIsTransitioning(false);
+
+        return playerData;
+    }, [mediaAutoNext, volume, setIsTransitioning]);
 
     const player = usePlayer();
 
     usePlayerEvents(
         {
-            onPlayerSeekToTimestamp: ({ timestamp }) => {
-                dlnaPlayer?.seekTo(timestamp);
+            onPlayerSeekToTimestamp: (properties) => {
+                const timestamp = properties.timestamp;
+                playerRef.current?.seekTo(timestamp);
             },
-            onPlayerStatus: async ({ status }) => {
-                switch (status) {
-                    case PlayerStatus.PAUSED:
-                        dlnaPlayer?.pause();
-                        break;
-                    case PlayerStatus.PLAYING:
-                        dlnaPlayer?.play();
-                        break;
-                    default:
-                        console.error(`Unknown player status '${status}'`);
+            onPlayerStatus: async (properties) => {
+                const status = properties.status;
+                const volume = usePlayerStore.getState().player.volume;
+                if (audioFadeOnStatusChange) {
+                    if (status === PlayerStatus.PAUSED) {
+                        fadeAndSetStatus(volume, 0, PLAY_PAUSE_FADE_DURATION, PlayerStatus.PAUSED);
+                    } else if (status === PlayerStatus.PLAYING) {
+                        fadeAndSetStatus(0, volume, PLAY_PAUSE_FADE_DURATION, PlayerStatus.PLAYING);
+                    }
+                } else {
+                    if (status === PlayerStatus.PAUSED) {
+                        playerRef.current?.setVolume(0);
+                        setLocalPlayerStatus(PlayerStatus.PAUSED);
+                    } else if (status === PlayerStatus.PLAYING) {
+                        playerRef.current?.setVolume(volume);
+                        setLocalPlayerStatus(PlayerStatus.PLAYING);
+                    }
                 }
             },
-            onPlayerVolume: ({ volume }) => {
-                dlnaPlayer?.setVolume(volume);
+            onPlayerVolume: (properties) => {
+                const volume = properties.volume;
+                playerRef.current?.setVolume(volume);
             },
             onQueueCleared: () => {
                 player.mediaStop();
             },
         },
-        [],
+        [volume, fadeAndSetStatus, audioFadeOnStatusChange],
     );
 
+    // Cleanup fade interval on unmount
     useEffect(() => {
-        if (status !== PlayerStatus.PLAYING) return;
+        return () => {
+            if (fadeIntervalRef.current) {
+                clearInterval(fadeIntervalRef.current);
+                fadeIntervalRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (localPlayerStatus !== PlayerStatus.PLAYING) {
+            return;
+        }
 
         const interval = setInterval(async () => {
-            if (!dlnaPlayer) return;
+            if (!dlnaPlayer) {
+                return;
+            }
 
             try {
                 const time = await dlnaPlayer.getCurrentTime();
-                setTimestamp(Number(time.toFixed(0)));
+                if (time !== undefined) {
+                    setTimestamp(Number(time.toFixed(0)));
+                }
             } catch {
                 // Do nothing
             }
         }, 500);
 
         return () => clearInterval(interval);
-    }, [status, setTimestamp]);
+    }, [localPlayerStatus, setTimestamp]);
 
-    useEffect(() => {
-        dlnaPlayerListener?.rendererDlnaFinished(() => mediaNext());
-        return () => ipc?.removeAllListeners('renderer-dlna-finished');
-    }, [mediaNext]);
-
-    return null;
-};
+    return (
+        <DlnaPlayerEngine
+            isMuted={isMuted}
+            isTransitioning={isTransitioning}
+            onEnded={handleOnEnded}
+            onProgress={onProgress}
+            playerRef={playerRef}
+            playerStatus={localPlayerStatus}
+            speed={speed}
+            volume={volume}
+        />
+    );
+}

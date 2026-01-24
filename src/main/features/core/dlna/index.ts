@@ -10,7 +10,7 @@ import {
     pause,
     play,
     seekTo,
-    setDevice,
+    createClient,
     setVolume,
     stop,
 } from '/@/main/features/core/dlna/controller';
@@ -137,9 +137,13 @@ const getDlnaDevice = async (deviceUrl: string) => {
     }
 };
 
-ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) =>
-    setDevice(data.deviceUrl),
-);
+ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) => {
+    const client = createClient(data.deviceUrl);
+
+    client.on('status', (status) => {
+        return console.log(`DLNA status change: ${JSON.stringify(status)}`);
+    });
+});
 
 ipcMain.on('dlna-load', (_event, stream: DlnaStreamInfo) => load(stream));
 
