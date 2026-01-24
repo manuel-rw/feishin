@@ -293,7 +293,7 @@ export type DlnaInitialize = {
     deviceUrl: string;
 };
 
-export type DlnaPlayStream = {
+export type DlnaStreamInfo = {
     url: string;
     metadata: DlnaMetadata;
     mimeType: string;

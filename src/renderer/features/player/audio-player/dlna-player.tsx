@@ -11,6 +11,8 @@ import {
 import { PlayerStatus } from '/@/shared/types/types';
 import isElectron from 'is-electron';
 import { useSongUrl } from '/@/renderer/features/player/audio-player/hooks/use-stream-url';
+import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/use-player-events';
+import { usePlayer } from '/@/renderer/features/player/context/player-context';
 
 const dlnaPlayer = isElectron() ? window.api.dlnaPlayer : null;
 const dlnaPlayerListener = isElectron() ? window.api.dlnaPlayerListener : null;
@@ -51,18 +53,34 @@ export const DlnaPlayer = () => {
         });
     }, [song, song?.id, songUrl]);
 
-    useEffect(() => {
-        switch (status) {
-            case PlayerStatus.PAUSED:
-                dlnaPlayer?.pause();
-                break;
-            case PlayerStatus.PLAYING:
-                dlnaPlayer?.play();
-                break;
-            default:
-                console.error(`Unknown player status '${status}'`);
-        }
-    }, [status]);
+    const player = usePlayer();
+
+    usePlayerEvents(
+        {
+            onPlayerSeekToTimestamp: ({ timestamp }) => {
+                dlnaPlayer?.seekTo(timestamp);
+            },
+            onPlayerStatus: async ({ status }) => {
+                switch (status) {
+                    case PlayerStatus.PAUSED:
+                        dlnaPlayer?.pause();
+                        break;
+                    case PlayerStatus.PLAYING:
+                        dlnaPlayer?.play();
+                        break;
+                    default:
+                        console.error(`Unknown player status '${status}'`);
+                }
+            },
+            onPlayerVolume: ({ volume }) => {
+                dlnaPlayer?.setVolume(volume);
+            },
+            onQueueCleared: () => {
+                player.mediaStop();
+            },
+        },
+        [],
+    );
 
     useEffect(() => {
         if (status !== PlayerStatus.PLAYING) return;

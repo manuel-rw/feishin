@@ -1,5 +1,5 @@
 import MediaRendererClient from 'upnp-mediarenderer-client';
-import { DlnaPlayStream } from '/@/shared/types/types';
+import { DlnaStreamInfo } from '/@/shared/types/types';
 
 const ERR_NOT_INITIALIZED = Error('DLNA client not initialized');
 
@@ -17,7 +17,7 @@ const getClient = () => {
     return client;
 };
 
-export const load = (stream: DlnaPlayStream) => {
+export const load = (stream: DlnaStreamInfo) => {
     getClient()?.load(
         stream.url,
         {
@@ -25,16 +25,26 @@ export const load = (stream: DlnaPlayStream) => {
             contentType: stream.mimeType,
             metadata: stream.metadata,
         },
-        (err: any) => {
-            if (err) console.error('DLNA playback error:', err);
-            else console.log('DLNA playback started successfully');
+        (error) => {
+            if (error) console.error('DLNA load stream:', error);
         },
     );
 };
 
-export const play = () => getClient()?.play();
+export const play = () =>
+    getClient()?.play((error) => {
+        if (error) console.error('DLNA play:', error);
+    });
 
-export const pause = () => getClient()?.pause();
+export const pause = () =>
+    getClient()?.pause((error) => {
+        if (error) console.error('DLNA pause:', error);
+    });
+
+export const stop = () =>
+    getClient()?.stop((error) => {
+        if (error) console.error('DLNA stop:', error);
+    });
 
 export const getTime = async () =>
     new Promise<number>((resolve, reject) => {
@@ -48,4 +58,14 @@ export const getTime = async () =>
                 resolve(result);
             }
         });
+    });
+
+export const seekTo = (seconds: number) =>
+    getClient()?.seek(seconds, (error) => {
+        if (error) console.error('DLNA seekTo:', error);
+    });
+
+export const setVolume = (volume: number) =>
+    getClient()?.setVolume(volume, (error) => {
+        if (error) console.error('DLNA setVolume:', error);
     });

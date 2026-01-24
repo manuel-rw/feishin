@@ -3,8 +3,17 @@ import * as dgram from 'dgram';
 import { ipcMain } from 'electron';
 import { XMLParser } from 'fast-xml-parser';
 import z from 'zod';
-import { DlnaDevice, DlnaInitialize, DlnaPlayStream } from '/@/shared/types/types';
-import { getTime, load, pause, play, setDevice } from '/@/main/features/core/dlna/controller';
+import { DlnaDevice, DlnaInitialize, DlnaStreamInfo } from '/@/shared/types/types';
+import {
+    getTime,
+    load,
+    pause,
+    play,
+    seekTo,
+    setDevice,
+    setVolume,
+    stop,
+} from '/@/main/features/core/dlna/controller';
 
 const parser = new XMLParser();
 
@@ -132,10 +141,16 @@ ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) =>
     setDevice(data.deviceUrl),
 );
 
-ipcMain.on('dlna-load', (_event, stream: DlnaPlayStream) => load(stream));
+ipcMain.on('dlna-load', (_event, stream: DlnaStreamInfo) => load(stream));
 
 ipcMain.on('dlna-play', () => play());
 
 ipcMain.on('dlna-pause', () => pause());
 
+ipcMain.on('dlna-stop', () => stop());
+
 ipcMain.handle('dlna-get-time', async () => await getTime());
+
+ipcMain.on('dlna-seek-to', (_event, seconds: number) => seekTo(seconds));
+
+ipcMain.on('dlna-volume', (_event, volume: number) => setVolume(volume));
