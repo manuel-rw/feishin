@@ -1,5 +1,5 @@
 import { ipcRenderer, IpcRendererEvent } from 'electron';
-import { DlnaInitialize, DlnaStreamInfo } from '/@/shared/types/types';
+import { DlnaChangedTrack, DlnaInitialize, DlnaQueue, DlnaQueueItem } from '/@/shared/types/types';
 
 const discover = () => {
     return ipcRenderer.invoke('dlna-discover');
@@ -7,7 +7,9 @@ const discover = () => {
 
 const initialize = (data: DlnaInitialize) => ipcRenderer.invoke('dlna-initialize', data);
 
-const load = (song: DlnaStreamInfo) => ipcRenderer.send('dlna-load', song);
+const setQueue = (queue: DlnaQueue) => ipcRenderer.send('dlna-set-queue', queue);
+
+const setQueueNext = (item: DlnaQueueItem) => ipcRenderer.send('dlna-set-queue-next', item);
 
 const play = () => ipcRenderer.send('dlna-play');
 
@@ -21,14 +23,17 @@ const seekTo = (seconds: number) => ipcRenderer.send('dlna-seek-to', seconds);
 
 const setVolume = (value: number) => ipcRenderer.send('dlna-volume', value);
 
-const rendererDlnaFinished = (cb: (event: IpcRendererEvent, data: boolean) => void) => {
-    ipcRenderer.on('renderer-dlna-finished', cb);
+const rendererDlnaChangedTrack = (
+    cb: (event: IpcRendererEvent, data: DlnaChangedTrack) => void,
+) => {
+    ipcRenderer.on('renderer-dlna-changed-track', cb);
 };
 
 export const dlnaPlayer = {
     discover,
     initialize,
-    load,
+    setQueue,
+    setQueueNext,
     play,
     pause,
     stop,
@@ -38,7 +43,7 @@ export const dlnaPlayer = {
 };
 
 export const dlnaPlayerListener = {
-    rendererDlnaFinished,
+    rendererDlnaChangedTrack,
 };
 
 export type DlnaPLayer = typeof dlnaPlayer;

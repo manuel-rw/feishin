@@ -1,5 +1,5 @@
-import MediaRendererClient from 'upnp-mediarenderer-client';
-import { DlnaStreamInfo } from '/@/shared/types/types';
+import { MediaRendererClient } from '/@/main/features/core/dlna/renderer';
+import { DlnaQueueItem } from '/@/shared/types/types';
 
 const ERR_NOT_INITIALIZED = Error('DLNA client not initialized');
 
@@ -18,19 +18,47 @@ const getClient = () => {
     return client;
 };
 
-export const load = (stream: DlnaStreamInfo) => {
-    getClient()?.load(
-        stream.url,
-        {
-            autoplay: stream.autoplay || false,
-            contentType: stream.mimeType,
-            metadata: stream.metadata,
-        },
-        (error) => {
-            if (error) console.error('DLNA load stream:', error);
-        },
-    );
-};
+export const load = (item: DlnaQueueItem) =>
+    new Promise<number>((resolve, reject) => {
+        const client = getClient();
+        if (!client) return reject(ERR_NOT_INITIALIZED);
+
+        client.load(
+            item.url,
+            {
+                contentType: item.mimeType,
+                metadata: item.metadata,
+            },
+            (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            },
+        );
+    });
+
+export const enqueue = (item: DlnaQueueItem) =>
+    new Promise<number>((resolve, reject) => {
+        const client = getClient();
+        if (!client) return reject(ERR_NOT_INITIALIZED);
+
+        client.enqueue(
+            item.url,
+            {
+                contentType: item.mimeType,
+                metadata: item.metadata,
+            },
+            (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            },
+        );
+    });
 
 export const play = () =>
     getClient()?.play((error) => {

@@ -14,7 +14,7 @@ import {
     usePlayerStore,
     useSettingsStore,
 } from '/@/renderer/store';
-import { DlnaStreamInfo, PlayerStatus } from '/@/shared/types/types';
+import { DlnaChangedTrack, DlnaQueueItem, PlayerStatus } from '/@/shared/types/types';
 import { QueueSong } from '/@/shared/types/domain-types';
 
 export interface DlnaPlayerEngineHandle extends AudioPlayer {}
@@ -73,17 +73,16 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
 
             if (!radioState.currentStreamUrl) {
                 const playerData = usePlayerStore.getState().getPlayerData();
-                const currentSong = playerData.currentSong;
-                const currentStream = currentSong
-                    ? songToDlnaStream(currentSong, false, transcode)
+                const current = playerData.currentSong
+                    ? songToDlnaQueueItem(playerData.currentSong, transcode)
+                    : undefined;
+                const next = playerData.nextSong
+                    ? songToDlnaQueueItem(playerData.nextSong, transcode)
                     : undefined;
 
-                // const nextSongUrl = playerData.nextSong
-                //     ? getSongUrl(playerData.nextSong, transcode)
-                //     : undefined;
-
-                if (currentStream && !hasPopulatedQueueRef.current && dlnaPlayer) {
-                    dlnaPlayer.load(currentStream);
+                if (current && !hasPopulatedQueueRef.current && dlnaPlayer) {
+                    const queue = { current, next, isPaused: true };
+                    dlnaPlayer?.setQueue(queue);
                     hasPopulatedQueueRef.current = true;
                 }
             }
@@ -200,17 +199,20 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
             return;
         }
 
-        // TODO:
-        // const handleOnAutoNext = () => {
-        //     mediaAutoNext();
-        //     handleDlnaAutoNext(transcode);
-        // };
-        //
-        // dlnaPlayerListener.rendererAutoNext(handleOnAutoNext);
-        //
-        // return () => {
-        //     ipc?.removeAllListeners('renderer-player-auto-next');
-        // };
+        dlnaPlayerListener.rendererDlnaChangedTrack((_event, { trackUrl }) => {
+            const playerData = usePlayerStore.getState().getPlayerData();
+            const currentSongUrl = playerData.currentSong
+                ? getSongUrl(playerData.currentSong, transcode)
+                : undefined;
+            if (trackUrl !== currentSongUrl) return;
+
+            mediaAutoNext();
+            handleDlnaAutoNext(transcode);
+        });
+
+        return () => {
+            ipc?.removeAllListeners('renderer-dlna-changed-track');
+        };
     }, [mediaAutoNext, onEnded, transcode]);
 
     usePlayerEvents(
@@ -223,14 +225,12 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
             },
             onNextSongInsertion: (song) => {
                 const radioState = useRadioStore.getState();
+                if (radioState.currentStreamUrl) return;
 
-                if (radioState.currentStreamUrl) {
-                    return;
-                }
+                const next = song ? songToDlnaQueueItem(song, transcode) : undefined;
+                if (!next) return;
 
-                // TODO:
-                // const nextSongUrl = song ? getSongUrl(song, transcode) : undefined;
-                // dlnaPlayer?.setQueueNext(nextSongUrl);
+                dlnaPlayer?.setQueueNext(next);
             },
             onPlayerPlay: () => {
                 replaceDlnaQueue(transcode);
@@ -286,18 +286,19 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
 
 DlnaPlayerEngine.displayName = 'DlnaPlayerEngine';
 
-// TODO:
-// function handleDlnaAutoNext(transcode: {
-//     bitrate?: number | undefined;
-//     enabled: boolean;
-//     format?: string | undefined;
-// }) {
-//     const playerData = usePlayerStore.getState().getPlayerData();
-//     const nextSongUrl = playerData.nextSong
-//         ? getSongUrl(playerData.nextSong, transcode)
-//         : undefined;
-//     dlnaPlayer?.autoNext(nextSongUrl);
-// }
+function handleDlnaAutoNext(transcode: {
+    bitrate?: number | undefined;
+    enabled: boolean;
+    format?: string | undefined;
+}) {
+    const playerData = usePlayerStore.getState().getPlayerData();
+    const nextQueueItem = playerData.nextSong
+        ? songToDlnaQueueItem(playerData.nextSong, transcode)
+        : undefined;
+    if (!nextQueueItem) return;
+
+    dlnaPlayer?.setQueueNext(nextQueueItem);
+}
 
 function replaceDlnaQueue(transcode: {
     bitrate?: number | undefined;
@@ -312,21 +313,21 @@ function replaceDlnaQueue(transcode: {
     }
 
     const playerData = usePlayerStore.getState().getPlayerData();
-    const currentSongStream = playerData.currentSong
-        ? songToDlnaStream(playerData.currentSong, true, transcode)
+    const current = playerData.currentSong
+        ? songToDlnaQueueItem(playerData.currentSong, transcode)
         : undefined;
-    if (!currentSongStream) return;
+    if (!current) return;
 
-    // const nextSongUrl = playerData.nextSong
-    //     ? getSongUrl(playerData.nextSong, transcode)
-    //     : undefined;
+    const next = playerData.nextSong
+        ? songToDlnaQueueItem(playerData.nextSong, transcode)
+        : undefined;
 
-    dlnaPlayer?.load(currentSongStream);
+    const queue = { current, next, isPaused: false };
+    dlnaPlayer?.setQueue(queue);
 }
 
-function songToDlnaStream(
+function songToDlnaQueueItem(
     song: QueueSong,
-    autoplay: boolean,
     transcode: {
         bitrate?: number | undefined;
         enabled: boolean;
@@ -350,10 +351,9 @@ function songToDlnaStream(
         return;
     }
 
-    const dlnaStream: DlnaStreamInfo = {
+    const dlnaStream: DlnaQueueItem = {
         metadata: { creator: song.artistName, title: song.name, type: 'music' },
         mimeType,
-        autoplay,
         url: url,
     };
     return dlnaStream;

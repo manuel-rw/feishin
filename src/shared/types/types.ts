@@ -293,16 +293,25 @@ export type DlnaInitialize = {
     deviceUrl: string;
 };
 
-export type DlnaStreamInfo = {
+export type DlnaQueue = {
+    current: DlnaQueueItem;
+    next?: DlnaQueueItem;
+    isPaused: boolean;
+};
+
+export type DlnaQueueItem = {
     url: string;
     metadata: DlnaMetadata;
     mimeType: string;
-    autoplay?: boolean;
 };
 
 export type DlnaMetadata = {
     title?: string;
     creator?: string;
-    type?: "music" | "audo" | "image";
+    type?: 'music' | 'audo' | 'image';
     subtitleUrl?: string;
-}
+};
+
+export type DlnaChangedTrack = {
+    trackUrl: string;
+};

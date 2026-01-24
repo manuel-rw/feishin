@@ -3,7 +3,13 @@ import * as dgram from 'dgram';
 import { ipcMain } from 'electron';
 import { XMLParser } from 'fast-xml-parser';
 import z from 'zod';
-import { DlnaDevice, DlnaInitialize, DlnaStreamInfo } from '/@/shared/types/types';
+import {
+    DlnaChangedTrack,
+    DlnaDevice,
+    DlnaInitialize,
+    DlnaQueue,
+    DlnaQueueItem,
+} from '/@/shared/types/types';
 import {
     getTime,
     load,
@@ -13,7 +19,9 @@ import {
     createClient,
     setVolume,
     stop,
+    enqueue,
 } from '/@/main/features/core/dlna/controller';
+import { getMainWindow } from '/@/main/index';
 
 const parser = new XMLParser();
 
@@ -143,9 +151,20 @@ ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) => {
     client.on('status', (status) => {
         return console.log(`DLNA status change: ${JSON.stringify(status)}`);
     });
+
+    client.on('changedTrack', (trackUrl) => {
+        const data: DlnaChangedTrack = { trackUrl };
+        getMainWindow()?.webContents.send('renderer-dlna-changed-track', data);
+    });
 });
 
-ipcMain.on('dlna-load', (_event, stream: DlnaStreamInfo) => load(stream));
+ipcMain.on('dlna-set-queue', async (_event, queue: DlnaQueue) => {
+    await load(queue.current);
+    if (queue.next) await enqueue(queue.next);
+    if (!queue.isPaused) play();
+});
+
+ipcMain.on('dlna-set-queue-next', async (_event, item: DlnaQueueItem) => await enqueue(item));
 
 ipcMain.on('dlna-play', () => play());
 
