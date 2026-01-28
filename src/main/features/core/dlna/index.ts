@@ -166,7 +166,7 @@ ipcMain.on('dlna-set-queue', async (_event, queue: DlnaQueue) => {
 
 ipcMain.on('dlna-set-queue-next', async (_event, item: DlnaQueueItem) => await enqueue(item));
 
-ipcMain.on('dlna-play', () => play());
+ipcMain.on('dlna-play', (_event, speed?: number) => play({speed: speed}));
 
 ipcMain.on('dlna-pause', () => pause());
 

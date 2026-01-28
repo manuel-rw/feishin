@@ -11,7 +11,7 @@ const setQueue = (queue: DlnaQueue) => ipcRenderer.send('dlna-set-queue', queue)
 
 const setQueueNext = (item: DlnaQueueItem) => ipcRenderer.send('dlna-set-queue-next', item);
 
-const play = () => ipcRenderer.send('dlna-play');
+const play = (speed?: number) => ipcRenderer.send('dlna-play', speed);
 
 const pause = () => ipcRenderer.send('dlna-pause');
 

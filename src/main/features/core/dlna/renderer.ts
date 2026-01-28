@@ -7,9 +7,17 @@ export class MediaRendererClient extends UpnpMediaRendererClient {
 
         const self = this;
         this.on('status', (newStatus) => {
-            if (newStatus.hasOwnProperty('CurrentTrackURI'))
-                self.emit('changedTrack', newStatus.CurrentTrackURI);
+            if (newStatus.hasOwnProperty('AVTransportURI'))
+                self.emit('changedTrack', newStatus.AVTransportURI);
         });
+    }
+
+    public play(opts?: { speed?: number }, callback?: (error?: any, result?: any) => void) {
+        var params = {
+            InstanceID: this.instanceId,
+            Speed: opts?.speed || 1,
+        };
+        this.callAction('AVTransport', 'Play', params, callback || (() => {}));
     }
 
     public enqueue(url: string, options: any, callback: (error?: any, result?: any) => void) {

@@ -60,8 +60,8 @@ export const enqueue = (item: DlnaQueueItem) =>
         );
     });
 
-export const play = () =>
-    getClient()?.play((error) => {
+export const play = (opts?: {speed?: number}) =>
+    getClient()?.play(opts, (error) => {
         if (error) console.error('DLNA play:', error);
     });
 

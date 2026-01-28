@@ -3,7 +3,6 @@ declare module 'upnp-mediarenderer-client' {
         instanceId: number;
 
         constructor(url: string);
-        play(callback?: (err: Error, result: any) => void): void;
         pause(callback?: (err: Error, result: any) => void): void;
         stop(callback?: (err: Error, result: any) => void): void;
         seek(seconds: number, callback?: (err: Error, result: any) => void): void;
@@ -20,7 +19,7 @@ declare module 'upnp-mediarenderer-client' {
             params: Record<string, any>,
             callback: (error: any, result?: any) => void,
         ): void;
-    emit(event: EventType, data?: any): void;
+        emit(event: EventType, data?: any): void;
     }
 
     type EventType =

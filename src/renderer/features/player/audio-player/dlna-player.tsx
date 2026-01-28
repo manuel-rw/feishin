@@ -80,11 +80,6 @@ export function DlnaPlayer() {
         [],
     );
 
-    const onProgress = useCallback(() => {
-        // Progress callback is now only used for transition logic
-        // Timestamp updates are handled separately in useEffect
-    }, []);
-
     const handleOnEnded = useCallback(() => {
         // When mpv auto-advances to the next song (position 1 becomes position 0),
         // we need to update the player store first, then update the mpv queue with the new next song
@@ -175,7 +170,9 @@ export function DlnaPlayer() {
             isMuted={isMuted}
             isTransitioning={isTransitioning}
             onEnded={handleOnEnded}
-            onProgress={onProgress}
+            // Progress callback is now only used for transition logic
+            // Timestamp updates are handled separately in useEffect
+            onProgress={undefined}
             playerRef={playerRef}
             playerStatus={localPlayerStatus}
             speed={speed}

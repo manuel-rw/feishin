@@ -8,13 +8,8 @@ import { usePlayerEvents } from '/@/renderer/features/player/audio-player/hooks/
 import { getSongUrl } from '/@/renderer/features/player/audio-player/hooks/use-stream-url';
 import { AudioPlayer, PlayerOnProgressProps } from '/@/renderer/features/player/audio-player/types';
 import { useRadioStore } from '/@/renderer/features/radio/hooks/use-radio-player';
-import {
-    usePlaybackSettings,
-    usePlayerActions,
-    usePlayerStore,
-    useSettingsStore,
-} from '/@/renderer/store';
-import { DlnaChangedTrack, DlnaQueueItem, PlayerStatus } from '/@/shared/types/types';
+import { usePlaybackSettings, usePlayerActions, usePlayerStore } from '/@/renderer/store';
+import { DlnaQueueItem, PlayerStatus } from '/@/shared/types/types';
 import { QueueSong } from '/@/shared/types/domain-types';
 
 export interface DlnaPlayerEngineHandle extends AudioPlayer {}
@@ -23,7 +18,7 @@ interface DlnaPlayerEngineProps {
     isMuted: boolean;
     isTransitioning: boolean;
     onEnded: () => void;
-    onProgress: (e: PlayerOnProgressProps) => void;
+    onProgress?: (e: PlayerOnProgressProps) => void;
     playerRef: RefObject<DlnaPlayerEngineHandle | null>;
     playerStatus: PlayerStatus;
     speed?: number;
@@ -128,20 +123,6 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
         dlnaPlayer.setVolume(isMuted ? 0 : volume);
     }, [isMuted]);
 
-    // Update speed/playback rate
-    useEffect(() => {
-        if (!dlnaPlayer) {
-            return;
-        }
-
-        if (!speed) {
-            return;
-        }
-
-        // TODO:
-        // dlnaPlayer.setProperties({ speed });
-    }, [speed]);
-
     // Handle play/pause status
     useEffect(() => {
         if (!dlnaPlayer) {
@@ -149,11 +130,11 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
         }
 
         if (playerStatus === PlayerStatus.PLAYING) {
-            dlnaPlayer.play();
+            dlnaPlayer.play(speed);
         } else if (playerStatus === PlayerStatus.PAUSED) {
             dlnaPlayer.pause();
         }
-    }, [playerStatus]);
+    }, [playerStatus, speed]);
 
     // Set up progress tracking
     useEffect(() => {
@@ -162,7 +143,7 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
         }
 
         const updateProgress = async () => {
-            if (!dlnaPlayer || !isMountedRef.current) {
+            if (!dlnaPlayer || !isMountedRef.current || !onProgress) {
                 return;
             }
 
@@ -201,10 +182,10 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
 
         dlnaPlayerListener.rendererDlnaChangedTrack((_event, { trackUrl }) => {
             const playerData = usePlayerStore.getState().getPlayerData();
-            const currentSongUrl = playerData.currentSong
-                ? getSongUrl(playerData.currentSong, transcode)
+            const nextSongUrl = playerData.nextSong
+                ? getSongUrl(playerData.nextSong, transcode)
                 : undefined;
-            if (trackUrl !== currentSongUrl) return;
+            if (trackUrl !== nextSongUrl) return;
 
             mediaAutoNext();
             handleDlnaAutoNext(transcode);
