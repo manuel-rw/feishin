@@ -40,10 +40,8 @@ import { useMediaQuery } from '/@/shared/hooks/use-media-query';
 import { useThrottledCallback } from '/@/shared/hooks/use-throttled-callback';
 import { useThrottledValue } from '/@/shared/hooks/use-throttled-value';
 import { LibraryItem, QueueSong, ServerType } from '/@/shared/types/domain-types';
-import { PlayerType } from '/@/shared/types/types';
 import isElectron from 'is-electron';
 
-const ipc = isElectron() ? window.api.ipc : null;
 const dlnaPlayer = isElectron() ? window.api.dlnaPlayer : null;
 
 const calculateVolumeUp = (volume: number, volumeWheelStep: number) => {
