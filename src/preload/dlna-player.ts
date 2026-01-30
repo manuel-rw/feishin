@@ -1,8 +1,8 @@
 import { ipcRenderer, IpcRendererEvent } from 'electron';
-import { DlnaChangedTrack, DlnaInitialize, DlnaQueue, DlnaQueueItem } from '/@/shared/types/types';
+import { DlnaChangedTrack, DlnaDevice, DlnaInitialize, DlnaQueue, DlnaQueueItem } from '/@/shared/types/types';
 
 const discover = () => {
-    return ipcRenderer.invoke('dlna-discover');
+    return ipcRenderer.invoke('dlna-discover') as Promise<DlnaDevice[]>;
 };
 
 const initialize = (data: DlnaInitialize) => ipcRenderer.invoke('dlna-initialize', data);

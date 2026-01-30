@@ -44,6 +44,7 @@ export const AudioPlayers = () => {
         audioDeviceId,
         mpvProperties: { audioSampleRateHz },
         webAudio,
+        dlnaDevice,
     } = usePlaybackSettings();
     const { setWebAudio, webAudio: audioContext } = useWebAudio();
 
@@ -187,11 +188,13 @@ const AudioPlayersContent = ({
         return <RadioWebPlayer />;
     }
 
+    if (dlnaDevice)
+        return <DlnaPlayer />;
+
     return (
         <>
             {playbackType === PlayerType.WEB && <WebPlayer />}
             {playbackType === PlayerType.LOCAL && <MpvPlayer />}
-            {playbackType === PlayerType.DLNA && <DlnaPlayer />}
         </>
     );
 };

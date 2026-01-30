@@ -377,18 +377,25 @@ interface DlnaDevice {
 
 const CastButton = () => {
     const { t } = useTranslation();
-    const { selectedDlnaDevice } = usePlaybackSettings();
+    const { dlnaDevice } = usePlaybackSettings();
     const [devices, setDevices] = useState<DlnaDevice[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
     const playbackSettings = usePlaybackSettings();
     const { setSettings } = useSettingsStoreActions();
 
+    const pushIfMissing = (devices: DlnaDevice[], toPush: DlnaDevice) => {
+        const isMissing = !devices.some((device) => device.url == toPush.url);
+        return isMissing ? [...devices, toPush] : devices;
+    };
+
     const discoverDevices = async () => {
         setIsSearching(true);
         try {
-            // This invokes the SSDP discovery in the Main process
-            const foundDevices = await dlnaPlayer?.discover();
+            let foundDevices = (await dlnaPlayer?.discover()) ?? [];
+            if (dlnaDevice) {
+                foundDevices = pushIfMissing(foundDevices, dlnaDevice);
+            }
             setDevices(foundDevices);
         } catch (error) {
             console.error('Failed to discover DLNA devices:', error);
@@ -398,17 +405,10 @@ const CastButton = () => {
     };
 
     const handleSelectDevice = async (device: DlnaDevice | null) => {
-        if (!device) return;
-
-        console.log('Connecting to DLNA device: ', JSON.stringify(device));
+        console.log('Selected DLNA device:', JSON.stringify(device));
 
         setSettings({
-            playback: { ...playbackSettings, type: PlayerType.DLNA },
-        });
-        await dlnaPlayer?.initialize({ deviceUrl: device.url });
-        ipc?.send('settings-set', {
-            property: 'playbackType',
-            value: PlayerType.DLNA,
+            playback: { ...playbackSettings, dlnaDevice: device },
         });
     };
     return (
@@ -417,7 +417,7 @@ const CastButton = () => {
                 <ActionIcon
                     icon="cast"
                     iconProps={{
-                        color: selectedDlnaDevice ? 'primary' : undefined,
+                        color: dlnaDevice ? 'primary' : undefined,
                         size: 'xl',
                     }}
                     onClick={(e) => {
@@ -426,8 +426,8 @@ const CastButton = () => {
                     }}
                     size="sm"
                     tooltip={{
-                        label: selectedDlnaDevice
-                            ? `${t('player.castingTo')}: ${selectedDlnaDevice.name}`
+                        label: dlnaDevice
+                            ? `${t('player.castingTo')}: ${dlnaDevice.name}`
                             : t('player.cast', { postProcess: 'titleCase' }),
                         openDelay: 0,
                     }}
@@ -439,7 +439,7 @@ const CastButton = () => {
                 <Menu.Label>{t('player.castToDevice')}</Menu.Label>
 
                 <Menu.Item
-                    color={!selectedDlnaDevice ? 'blue' : undefined}
+                    color={!dlnaDevice ? 'blue' : undefined}
                     leftSection={<Icon icon="appWindow" size="sm" />}
                     onClick={() => handleSelectDevice(null)}
                 >
@@ -450,7 +450,7 @@ const CastButton = () => {
 
                 {devices.map((device) => (
                     <Menu.Item
-                        color={selectedDlnaDevice?.url === device.url ? 'blue' : undefined}
+                        color={dlnaDevice?.url === device.url ? 'blue' : undefined}
                         key={device.url}
                         leftSection={<Icon icon="cast" size="sm" />}
                         onClick={() => handleSelectDevice(device)}

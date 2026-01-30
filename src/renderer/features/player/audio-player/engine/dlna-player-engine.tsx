@@ -51,16 +51,22 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
     const hasPopulatedQueueRef = useRef<boolean>(false);
     const isMountedRef = useRef<boolean>(true);
 
-    const { transcode } = usePlaybackSettings();
+    const { transcode, dlnaDevice } = usePlaybackSettings();
 
     // Start the mpv instance on startup
     useEffect(() => {
+        if (!dlnaDevice) throw new Error('No DLNA device selected');
+
         isMountedRef.current = true;
 
         const initializeDlna = async () => {
             // Reset initialization state
             isInitializedRef.current = false;
             hasPopulatedQueueRef.current = false;
+
+            await dlnaPlayer?.initialize({
+                deviceUrl: dlnaDevice.url,
+            });
 
             // After initialization, populate the queue if currentSrc is available
             // Don't override queue if radio is active
@@ -99,7 +105,7 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
         // reinitializing the entire player. Transcode changes are handled by queue
         // update callbacks in usePlayerEvents.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [dlnaDevice]);
 
     // Update volume
     useEffect(() => {
