@@ -339,10 +339,10 @@ function songToDlnaQueueItem(
         return;
     }
 
-    const dlnaStream: DlnaQueueItem = {
+    const dlnaQueueItem: DlnaQueueItem = {
         metadata: { creator: song.artistName, title: song.name, type: 'music' },
         mimeType,
         url: url,
     };
-    return dlnaStream;
+    return dlnaQueueItem;
 }

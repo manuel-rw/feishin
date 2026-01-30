@@ -33,7 +33,7 @@ import {
 } from '/@/renderer/store';
 import { toast } from '/@/shared/components/toast/toast';
 import { LibraryItem } from '/@/shared/types/domain-types';
-import { PlayerType } from '/@/shared/types/types';
+import { DlnaDevice, PlayerType } from '/@/shared/types/types';
 
 export const AudioPlayers = () => {
     const playbackType = usePlaybackType();
@@ -71,6 +71,7 @@ export const AudioPlayers = () => {
                 serverId={serverId}
                 setWebAudio={setWebAudio}
                 webAudio={webAudio}
+                dlnaDevice={dlnaDevice}
             />
         </>
     );
@@ -85,6 +86,7 @@ const AudioPlayersContent = ({
     serverId,
     setWebAudio,
     webAudio,
+    dlnaDevice,
 }: {
     audioContext: ReturnType<typeof useWebAudio>['webAudio'];
     audioDeviceId: null | string | undefined;
@@ -94,6 +96,7 @@ const AudioPlayersContent = ({
     serverId: null | string;
     setWebAudio: ReturnType<typeof useWebAudio>['setWebAudio'];
     webAudio: boolean;
+    dlnaDevice?: DlnaDevice | null;
 }) => {
     const isRadioActive = useIsRadioActive();
 
