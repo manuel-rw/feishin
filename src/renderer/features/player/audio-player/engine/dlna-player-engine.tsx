@@ -66,6 +66,7 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
 
             await dlnaPlayer?.initialize({
                 deviceUrl: dlnaDevice.url,
+                volume: volume
             });
 
             // After initialization, populate the queue if currentSrc is available

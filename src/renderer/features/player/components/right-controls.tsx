@@ -407,6 +407,7 @@ const CastButton = () => {
     const handleSelectDevice = async (device: DlnaDevice | null) => {
         console.log('Selected DLNA device:', JSON.stringify(device));
 
+        // TODO: Make this session-persistent
         setSettings({
             playback: { ...playbackSettings, dlnaDevice: device },
         });

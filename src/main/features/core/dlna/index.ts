@@ -149,6 +149,8 @@ const getDlnaDevice = async (deviceUrl: string) => {
 ipcMain.handle('dlna-initialize', async (_event, data: DlnaInitialize) => {
     const client = createClient(data.deviceUrl);
 
+    setVolume(data.volume)
+
     client.on('status', (status) => {
         return console.log(`DLNA status change: ${JSON.stringify(status)}`);
     });

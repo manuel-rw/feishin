@@ -60,7 +60,7 @@ export const enqueue = (item: DlnaQueueItem) =>
         );
     });
 
-export const play = (opts?: {speed?: number}) =>
+export const play = (opts?: { speed?: number }) =>
     getClient()?.play(opts, (error) => {
         if (error) console.error('DLNA play:', error);
     });
@@ -100,8 +100,6 @@ export const setVolume = (volume: number) =>
     });
 
 export const setMute = (isMuted: boolean) =>
-    {
-        return getClient()?.setMute(isMuted, (error) => {
-            if (error) console.error('DLNA setMute:', error);
-        });
-    };
+    getClient()?.setMute(isMuted, (error) => {
+        if (error) console.error('DLNA setMute:', error);
+    });

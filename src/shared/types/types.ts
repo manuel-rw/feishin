@@ -290,6 +290,7 @@ export type DlnaDevice = {
 
 export type DlnaInitialize = {
     deviceUrl: string;
+    volume: number;
 };
 
 export type DlnaQueue = {
