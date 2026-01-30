@@ -23,6 +23,8 @@ const seekTo = (seconds: number) => ipcRenderer.send('dlna-seek-to', seconds);
 
 const setVolume = (value: number) => ipcRenderer.send('dlna-volume', value);
 
+const setMute = (isMuted: boolean) => ipcRenderer.send('dlna-mute', isMuted);
+
 const rendererDlnaChangedTrack = (
     cb: (event: IpcRendererEvent, data: DlnaChangedTrack) => void,
 ) => {
@@ -40,6 +42,7 @@ export const dlnaPlayer = {
     getCurrentTime,
     seekTo,
     setVolume,
+    setMute,
 };
 
 export const dlnaPlayerListener = {

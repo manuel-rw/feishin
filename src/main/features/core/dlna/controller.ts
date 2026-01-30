@@ -98,3 +98,10 @@ export const setVolume = (volume: number) =>
     getClient()?.setVolume(volume, (error) => {
         if (error) console.error('DLNA setVolume:', error);
     });
+
+export const setMute = (isMuted: boolean) =>
+    {
+        return getClient()?.setMute(isMuted, (error) => {
+            if (error) console.error('DLNA setMute:', error);
+        });
+    };

@@ -20,6 +20,23 @@ export class MediaRendererClient extends UpnpMediaRendererClient {
         this.callAction('AVTransport', 'Play', params, callback || (() => {}));
     }
 
+    public getMute(callback?: (error?: any, result?: any) => void) {
+        var params = {
+            InstanceID: this.instanceId,
+            Channel: 'Master',
+        };
+        this.callAction('RenderingControl', 'GetMute', params, callback || (() => {}));
+    }
+
+    public setMute(isMuted: boolean, callback?: (error?: any, result?: any) => void) {
+        var params = {
+            InstanceID: this.instanceId,
+            Channel: 'Master',
+            DesiredMute: isMuted ? 1 : 0,
+        };
+        this.callAction('RenderingControl', 'SetMute', params, callback || (() => {}));
+    }
+
     public enqueue(url: string, options: any, callback: (error?: any, result?: any) => void) {
         var self = this;
 

@@ -89,7 +89,7 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
 
         return () => {
             isMountedRef.current = false;
-            // Quit mpv on unmount
+            // Stop dlna playback on unmount
             dlnaPlayer?.stop();
             isInitializedRef.current = false;
             hasPopulatedQueueRef.current = false;
@@ -120,7 +120,7 @@ export const DlnaPlayerEngine = (props: DlnaPlayerEngineProps) => {
             return;
         }
 
-        dlnaPlayer.setVolume(isMuted ? 0 : volume);
+        dlnaPlayer.setMute(isMuted);
     }, [isMuted]);
 
     // Handle play/pause status

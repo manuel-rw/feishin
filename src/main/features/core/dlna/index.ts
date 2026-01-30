@@ -20,6 +20,7 @@ import {
     setVolume,
     stop,
     enqueue,
+    setMute,
 } from '/@/main/features/core/dlna/controller';
 import { getMainWindow } from '/@/main/index';
 
@@ -177,3 +178,5 @@ ipcMain.handle('dlna-get-time', async () => await getTime());
 ipcMain.on('dlna-seek-to', (_event, seconds: number) => seekTo(seconds));
 
 ipcMain.on('dlna-volume', (_event, volume: number) => setVolume(volume));
+
+ipcMain.on('dlna-mute', (_event, isMuted: boolean) => setMute(isMuted));
