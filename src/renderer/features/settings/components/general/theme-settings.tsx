@@ -292,6 +292,26 @@ export const ThemeSettings = memo(() => {
             isHidden: settings.useThemePrimaryShade,
             title: t('setting.primaryShade'),
         },
+        {
+            control: (
+                <Switch
+                    checked={settings.roundedCorners}
+                    onChange={(e) => {
+                        setSettings({
+                            general: {
+                                roundedCorners: e.currentTarget.checked,
+                            },
+                        });
+                    }}
+                />
+            ),
+            description: t('setting.roundedCorners', {
+                context: 'description',
+                postProcess: 'sentenceCase',
+            }),
+            isHidden: false,
+            title: t('setting.roundedCorners', { postProcess: 'sentenceCase' }),
+        },
     ];
 
     return (

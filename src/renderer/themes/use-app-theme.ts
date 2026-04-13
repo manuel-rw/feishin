@@ -8,6 +8,7 @@ import {
     useAccent,
     useFontSettings,
     useNativeAspectRatio,
+    useRoundedCorners,
     useThemeSettings,
 } from '/@/renderer/store/settings.store';
 import { createMantineTheme } from '/@/renderer/themes/mantine-theme';
@@ -52,6 +53,7 @@ export const THEME_DATA = [
 export const useAppTheme = (overrideTheme?: AppTheme) => {
     const accent = useAccent();
     const nativeImageAspect = useNativeAspectRatio();
+    const roundedCorners = useRoundedCorners();
     const { builtIn, custom, system, type } = useFontSettings();
     const textStyleRef = useRef<HTMLStyleElement | null>(null);
     const themeInlineStylesRef = useRef<HTMLStyleElement | null>(null);
@@ -170,9 +172,26 @@ export const useAppTheme = (overrideTheme?: AppTheme) => {
             mantineOverride: {
                 ...themeProperties.mantineOverride,
                 ...(effectivePrimaryShade != null && { primaryShade: effectivePrimaryShade }),
+                ...(roundedCorners && {
+                    defaultRadius: 'lg',
+                    radius: {
+                        lg: '32px',
+                        md: '24px',
+                        sm: '12px',
+                        xl: '44px',
+                        xs: '10px',
+                    },
+                }),
             },
         };
-    }, [accent, primaryShade, selectedTheme, useThemeAccentColor, useThemePrimaryShade]);
+    }, [
+        accent,
+        primaryShade,
+        selectedTheme,
+        useThemeAccentColor,
+        useThemePrimaryShade,
+        roundedCorners,
+    ]);
 
     useEffect(() => {
         const root = document.documentElement;

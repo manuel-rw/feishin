@@ -748,6 +748,8 @@
         "useThemePrimaryShade_description": "Use the primary shade defined in the selected theme for primary color variants",
         "primaryShade": "Primary shade",
         "primaryShade_description": "Override the primary shade (0–9) used for buttons, links, and other primary-colored elements",
+        "roundedCorners": "rounded corners",
+        "roundedCorners_description": "use higher border radius values to make elements more rounded",
         "albumBackground_description": "Adds a background image for album pages containing the album art",
         "albumBackground": "Album background image",
         "albumBackgroundBlur_description": "Adjusts the amount of blur applied to the album background image",

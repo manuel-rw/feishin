@@ -40,6 +40,7 @@ declare global {
         FS_GENERAL_PLAYERBAR_OPEN_DRAWER?: string;
         FS_GENERAL_PRIMARY_SHADE?: string;
         FS_GENERAL_RESUME?: string;
+        FS_GENERAL_ROUNDED_CORNERS?: string;
         FS_GENERAL_SHOW_LYRICS_IN_SIDEBAR?: string;
         FS_GENERAL_SHOW_RATINGS?: string;
         FS_GENERAL_SHOW_VISUALIZER_IN_SIDEBAR?: string;

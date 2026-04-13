@@ -498,6 +498,7 @@ export const GeneralSettingsSchema = z.object({
     primaryShade: z.number().min(0).max(9),
     qobuz: z.boolean(),
     resume: z.boolean(),
+    roundedCorners: z.boolean(),
     showLyricsInSidebar: z.boolean(),
     showRatings: z.boolean(),
     showVisualizerInSidebar: z.boolean(),
@@ -1174,6 +1175,7 @@ const initialState: SettingsState = {
         primaryShade: 6,
         qobuz: true,
         resume: true,
+        roundedCorners: false,
         showLyricsInSidebar: true,
         showRatings: true,
         showVisualizerInSidebar: true,
@@ -2552,6 +2554,9 @@ export const useThemeSettings = () =>
         }),
         shallow,
     );
+
+export const useRoundedCorners = () =>
+    useSettingsStore((state) => state.general.roundedCorners, shallow);
 
 export const useSideQueueType = () =>
     useSettingsStore((state) => state.general.sideQueueType, shallow);

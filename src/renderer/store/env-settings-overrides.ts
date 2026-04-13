@@ -318,6 +318,7 @@ const ENV_SETTING_SPECS: EnvSettingSpec[] = [
         type: 'enum',
     },
     { key: 'FS_GENERAL_RESUME', path: ['general', 'resume'], type: 'bool' },
+    { key: 'FS_GENERAL_ROUNDED_CORNERS', path: ['general', 'roundedCorners'], type: 'bool' },
     {
         key: 'FS_GENERAL_USE_THEME_ACCENT_COLOR',
         path: ['general', 'useThemeAccentColor'],
